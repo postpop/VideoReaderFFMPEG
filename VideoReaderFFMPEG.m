@@ -53,7 +53,7 @@ classdef VideoReaderFFMPEG < handle
          
          frameNumber = frameNumber - 1;% zero-based
          if length(frameNumber)==1
-            frameTime = (frameNumber)./obj.FrameRate + 0.1/obj.FrameRate;
+            frameTime = (frameNumber)./obj.FrameRate - 0.1/obj.FrameRate;
             frame = obj.readSingleFrame(frameTime);
             
             if length(size(frame))==2
