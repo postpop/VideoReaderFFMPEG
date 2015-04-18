@@ -81,8 +81,10 @@ classdef VideoReaderFFMPEG < handle
          % -y           - say 'YES' to any prompt
          
          evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 tmp.tif']);
-         frame = imread('tmp.tif');
-         delete('tmp.tif')
+         frame = permute(imread('tmp.tif'), [2 1 3]);
+         try
+            delete('tmp.tif')
+         end
          
       end
    end

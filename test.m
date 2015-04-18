@@ -3,8 +3,9 @@
 % not the nonlinear relation of pixel values - seems as if matlab and
 % ffmpeg have different LUTs for that...
 clear all, clc, clf
+colormap('gray')
 %% 0. init VIDEOREADER objects
-videoFileName = '140731_1422.mp4';%'140212_1226.mp4';
+videoFileName = '150410_1457.avi';%'140731_1422.mp4';
 vr{1} = VideoReader(videoFileName);
 vr{2} = VideoReaderFFMPEG(videoFileName);
 %% .1 make sure metadata are identical
@@ -15,9 +16,8 @@ for prop = 1:length(PropertyNames)
 end
 %% 2. load frames using the built-in VIDEOREADER
 framesToRead = round(linspace(10, vr{1}.NumberOfFrames-10,10));
-colormap('gray')
 for fr = 1:length(framesToRead)
-   % read and plot the frame
+   % read and plot frames
    for vid = 1:length(vr)
       subplot(3,length(framesToRead), (vid-1)*length(framesToRead)+fr)
       frame{vid} = vr{vid}.read(framesToRead(fr));
