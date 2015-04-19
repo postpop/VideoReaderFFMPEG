@@ -41,26 +41,3 @@ for fr = 1:length(framesToRead)
       ylabel('FFMPEG')
    end
 end
-%%
-tt = zeros(1000,1);
-
-videoFileName = '140731_1422.mp4';
-vr = VideoReaderFFMPEG(videoFileName);
-vr.buffered = false;
-
-for f = 1:1000
-   tic
-   vr.read(5000+f);
-   tt(f,1) = toc;
-end
-%%
-clear vr;
-vr = VideoReaderFFMPEG(videoFileName);
-vr.buffered = true;
-vr.bufferSize = 10;
-for f = 1:1000
-   tic
-   vr.read(4000+f);
-   tt(f,2) = toc;
-end
-plot(1000*tt)
