@@ -6,7 +6,7 @@ classdef VideoReaderFFMPEG < handle
    %
    % Exposes a simple interface that implements a subset of the builtin
    %  CONSTRUCTOR:
-   %     vr = VideoReaderFFMPEG('test.mp4');
+   %     vr = VideoReaderFFMPEG('test.mp4', ['tempFolder'= './'], ['FFMPEGPath'= '/usr/local/bin' (UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)]);
    %
    %  METHODS:
    %     read() with single frames or a range of frames [startFrame endFrame]
@@ -18,27 +18,60 @@ classdef VideoReaderFFMPEG < handle
    % JC - created 2015/04/03
    
    properties
-      vr
+      % input parameters:
       vFileName
+      tempFolder
+      FFMPEGPath
+      % metadata:
       NumberOfFrames
       FrameRate
       Width, Height
       Channels
-      bufferedFrameTimes
+      % buffer params:
       buffered
       bufferSize
+      bufferedFrameTimes
+      % unused - delete?
+      vr
    end
    
    methods (Access='public')
-      function obj = VideoReaderFFMPEG(vFileName)
-         if ~exist(vFileName,'file')
-            error('video file %s does not exist.', vFileName);
+      function obj = VideoReaderFFMPEG(vFileName, varargin)
+         p = inputParser;
+         addRequired(p,'vFileName', @ischar);
+         defaultTempFolder = '.';
+         addParamValue(p, 'tempFolder', defaultTempFolder, @ischar);%#ok<*NVREPL> % should be addParameter - used the old name for compatibility with 2013a
+         if isunix
+            defaultFFMPEGPath = '/usr/local/bin';
          end
-         obj.vFileName = vFileName;
+         if ispc
+            defaultFFMPEGPath = 'C:\Program Files\ffmpeg\bin';
+         end
+         addParamValue(p, 'FFMPEGPath', defaultFFMPEGPath, @ischar);% should be addParameter - used the old name for compatibility with 2013a
+         parse(p,vFileName,varargin{:})
+         
+         if ~exist(p.Results.vFileName,'file')% this should be part of the inputParser
+            error('video file %s does not exist.', p.Results.vFileName);
+         else
+            obj.vFileName = p.Results.vFileName;
+         end
+         obj.tempFolder = p.Results.tempFolder;
+         obj.FFMPEGPath= p.Results.FFMPEGPath;
+         
          % add location of FFMPEG/FFPROBE to path
          path1 = getenv('PATH');
-         path1 = [path1 ':/usr/local/bin'];% this is where FFPROBE is installed to on my system
+         if isunix
+            path1 = [path1 ':' obj.FFMPEGPath];% this is where FFPROBE is installed to on my system
+         end
+         if ispc % WINDOWS
+            path1 = [path1 ';' obj.FFMPEGPath ';'];%
+         end
          setenv('PATH', path1);
+         % check that FFMPEG and FFPROBE are available in path
+         % system('..') should return 0 but returns 1, and the statement
+         % prints the result
+         %assert(system('ffmpeg')<=1, 'FFMPEG not found!  Use FFMPEGPath parameter to point to binary');
+         %assert(system('ffprobe')<=1, 'FFPROBE not found! Use FFMPEGPath parameter to point to binary');
          
          % get metadata
          out = evalc(['!ffprobe -show_streams ' obj.vFileName]);
@@ -108,8 +141,8 @@ classdef VideoReaderFFMPEG < handle
          % -v error     - print only error messages
          % -y           - say 'YES' to any prompt
          
-         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 tmp.tif']);
-         frame = permute(imread('tmp.tif'), [2 1 3]);
+         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' fullfile(obj.tempFolder, 'tmp.tif')]);
+         frame = imread(fullfile(obj.tempFolder, 'tmp.tif'));
          %          delete('tmp.tif')
       end
       
@@ -125,11 +158,11 @@ classdef VideoReaderFFMPEG < handle
          bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          if ~any(bufferHits)
             obj.bufferedFrameTimes = frameTime + (0:obj.bufferSize-1)/obj.FrameRate;
-            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' tmp%5d.tif']);
+            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' fullfile(obj.tempFolder, 'tmp%5d.tif')]);
             bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          end
-         tifFileName = sprintf('tmp%05d.tif', find(bufferHits));
-         frame = permute(imread(tifFileName), [2 1 3]);
+         tifFileName = sprintf(fullfile(obj.tempFolder, 'tmp%05d.tif'), find(bufferHits,1,'first'));
+         frame = imread(tifFileName);
          %          delete(tifFileName)
       end
    end

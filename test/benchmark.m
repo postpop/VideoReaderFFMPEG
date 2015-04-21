@@ -31,7 +31,7 @@ end
 clear vr
 vr = VideoReaderFFMPEG(videoFileName);
 vr.buffered = true;
-vr.bufferSize = 10;% larger bufferSizes don't help on my system
+vr.bufferSize = 5;% larger bufferSizes don't help on my system
 
 for f = 1:frameNumber
    tic
