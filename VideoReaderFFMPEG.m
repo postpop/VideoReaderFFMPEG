@@ -137,11 +137,15 @@ classdef VideoReaderFFMPEG < handle
          end
       end
       
+      function clean(obj)
+         delete([obj.tempName '.tif']);
+         delete([obj.tempName '*.tif']);
+      end
+      
       function delete(obj)
          % deletes temporary tifs from disk - make this safe so we don't
          % accidentally delete files
-         delete([obj.tempName '.tif'])
-         delete([obj.tempName '*.tif'])
+         obj.clean()
       end
       
    end

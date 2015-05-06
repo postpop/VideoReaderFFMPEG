@@ -38,3 +38,11 @@ for fr = 1:length(framesToRead)
       ylabel('FFMPEG')
    end
 end
+%% test DELETE function
+disp('test delete function:')
+disp(' PRE:' )
+dir('*.tif')
+vr = [];
+disp(' POST:' )
+dir('*.tif')
+
