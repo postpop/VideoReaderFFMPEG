@@ -138,8 +138,12 @@ classdef VideoReaderFFMPEG < handle
       end
       
       function clean(obj)
-         delete([obj.tempName '.tif']);
-         delete([obj.tempName '*.tif']);
+         if ~isempty(dir([obj.tempName '.tif']))
+            delete([obj.tempName '.tif']);
+         end
+         if ~isempty(dir([obj.tempName '*.tif']))
+            delete([obj.tempName '*.tif']);
+         end
       end
       
       function delete(obj)
@@ -162,13 +166,13 @@ classdef VideoReaderFFMPEG < handle
          
          evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.tif']);
          frame = imread([obj.tempName, '.tif']);
-         %          delete('tmp.tif')
       end
       
       function frame = readSingleFrameBuffered(obj, frameTime)
          % write RAW frame to file using FFMPEG - frames are accessed based
          % on time starting with 0 (so frame #1 is 0, not 1/fps!!).
-         
+         % uses tif files buffered on disk
+
          % -vframes 1   - number of frames to extract
          % -ss seconds  - start point
          % -v error     - print only error messages
@@ -182,7 +186,6 @@ classdef VideoReaderFFMPEG < handle
          end
          tifFileName = sprintf([obj.tempName, '%05d.tif'], find(bufferHits,1,'first'));
          frame = imread(tifFileName);
-         %          delete(tifFileName)
       end
    end
 end
