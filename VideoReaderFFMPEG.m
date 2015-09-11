@@ -14,10 +14,11 @@ classdef VideoReaderFFMPEG < handle
    %
    %  METHODS:
    %     read(frames) - with single frames or a range of frames [startFrame endFrame]
-   %     clean()      - NOT IMPLEMENTED - delete all temporary files
+   %     clean()      - delete all temporary files
    %
    %  PROPERTIES:
    %     Width, Height, NumberOfFrames, FrameRate, Channels
+   %     buffered, bufferSize, bufferedFrameTimes, tempName, tempFolder
    %
    %  see also VIDEOREADER
    
@@ -42,7 +43,7 @@ classdef VideoReaderFFMPEG < handle
       bufferSize
       bufferedFrameTimes
       tempName                % name for temporary tiff files - to avoid buffer collision if multiple instances of VideoReaderFFMPEG access the same tempFolder
-      % unused - delete?
+      % unused - delete or keep for compatibility?
       vr
    end
    
