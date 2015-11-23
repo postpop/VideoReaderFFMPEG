@@ -122,7 +122,7 @@ classdef VideoReaderFFMPEG < handle
                frame = reshape(frame, [size(frame),1,1]);
             end
          else
-            frameTimes = frameNumber(1)/obj.FrameRate:1/obj.FrameRate:frameNumber(2)/obj.FrameRate
+            frameTimes = frameNumber(1)/obj.FrameRate:1/obj.FrameRate:frameNumber(2)/obj.FrameRate;
             frame = zeros(obj.Height,obj.Width,obj.Channels,length(frameTimes),'uint8');
             for f = 1:length(frameTimes)
                if obj.buffered
