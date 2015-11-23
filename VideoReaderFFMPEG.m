@@ -23,11 +23,7 @@ classdef VideoReaderFFMPEG < handle
    %  see also VIDEOREADER
    
    % JC - created 2015/04/03
-   
-   % TODO
-   % - generate random basename instead of 'tmp' to avoid collisions of
-   %   readers simultaneously working in the same folder/on the same file
-   
+      
    properties
       % input parameters:
       vFileName
@@ -126,8 +122,8 @@ classdef VideoReaderFFMPEG < handle
                frame = reshape(frame, [size(frame),1,1]);
             end
          else
-            frameTimes = frameNumber(1)/obj.FrameRate:1/obj.FrameRate:frameNumber(2)/obj.FrameRate;
-            frame = zeros(obj.Width,obj.Height,obj.Channels,length(frameTimes),'uint8');
+            frameTimes = frameNumber(1)/obj.FrameRate:1/obj.FrameRate:frameNumber(2)/obj.FrameRate
+            frame = zeros(obj.Height,obj.Width,obj.Channels,length(frameTimes),'uint8');
             for f = 1:length(frameTimes)
                if obj.buffered
                   frame(:,:,:,f) = obj.readSingleFrameBuffered(frameTimes(f));
