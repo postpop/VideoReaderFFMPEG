@@ -135,11 +135,11 @@ classdef VideoReaderFFMPEG < handle
       end
       
       function clean(obj)
-         if ~isempty(dir([obj.tempName '.tif']))
-            delete([obj.tempName '.tif']);
+         if ~isempty(dir([obj.tempName '.png']))
+            delete([obj.tempName '.png']);
          end
-         if ~isempty(dir([obj.tempName '*.tif']))
-            delete([obj.tempName '*.tif']);
+         if ~isempty(dir([obj.tempName '*.png']))
+            delete([obj.tempName '*.png']);
          end
       end
       
@@ -161,8 +161,8 @@ classdef VideoReaderFFMPEG < handle
          % -v error     - print only error messages
          % -y           - say 'YES' to any prompt
          
-         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.tif']);
-         frame = imread([obj.tempName, '.tif']);
+         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.png']);
+         frame = imread([obj.tempName, '.png']);
       end
       
       function frame = readSingleFrameBuffered(obj, frameTime)
@@ -178,10 +178,10 @@ classdef VideoReaderFFMPEG < handle
          bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          if ~any(bufferHits)
             obj.bufferedFrameTimes = frameTime + (0:obj.bufferSize-1)/obj.FrameRate;
-            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%5d.tif']);
+            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%5d.png']);
             bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          end
-         tifFileName = sprintf([obj.tempName, '%05d.tif'], find(bufferHits,1,'first'));
+         tifFileName = sprintf([obj.tempName, '%05d.png'], find(bufferHits,1,'first'));
          frame = imread(tifFileName);
       end
    end
