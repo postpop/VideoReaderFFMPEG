@@ -178,7 +178,7 @@ classdef VideoReaderFFMPEG < handle
          bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          if ~any(bufferHits)
             obj.bufferedFrameTimes = frameTime + (0:obj.bufferSize-1)/obj.FrameRate;
-            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%5d.png']);
+            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.png']);
             bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          end
          tifFileName = sprintf([obj.tempName, '%05d.png'], find(bufferHits,1,'first'));
