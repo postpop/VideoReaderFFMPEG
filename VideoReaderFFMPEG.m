@@ -160,7 +160,6 @@ classdef VideoReaderFFMPEG < handle
          % -ss seconds  - start point
          % -v error     - print only error messages
          % -y           - say 'YES' to any prompt
-         
          evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.png']);
          frame = imread([obj.tempName, '.png']);
       end
