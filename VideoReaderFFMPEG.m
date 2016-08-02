@@ -1,25 +1,27 @@
 classdef VideoReaderFFMPEG < handle
-   % For reading videos - needed it since the builting VIDEOREADER wouldn't
-   % accept h264 encoded files - this is a simple command line wrapper for FFMPEG
-   %
-   %
+   % For reading videos - needed it since the builtin VIDEOREADER wouldn't
+   % accept h264 encoded files - this is a simple command line wrapper for FFMPEG.
    % Exposes a simple interface that implements a subset of the builtin
+   %
    %  CONSTRUCTOR:
-   %     vr = VideoReaderFFMPEG(fileName, ['tempFolder', tempFolder, 'FFMPEGPath', FFMPEGPath]);
+   %     vr = VideoReaderFFMPEG(fileName, 'tempFolder', tempFolder, 'FFMPEGPath', FFMPEGPath, 'imageFormat', imageFormat);
+   %
    %     PARAMS:
-   %        fileName    - ...
+   %        fileName    - path to video file
    %        tempFolder  - OPTIONAL - location to store temporary files, defaults to './'
-   %        FFMPEGPath  - OPTIONAL - location of FFMPEG/FFPROBE executables defaults to '/usr/local/bin' (OSX/UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)
-   %        imageFormat - OPTIONAL - format to use as a temporary frame
-   %                                 store, defaults to 'tif'
+   %        FFMPEGPath  - OPTIONAL - location of FFMPEG/FFPROBE executables,
+   %                                 defaults to '/usr/local/bin' (OSX/UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)
+   %        imageFormat - OPTIONAL - format used as a temporary frame store, defaults to 'tif'
    %
    %  METHODS:
-   %     read(frames) - with single frames or a range of frames [startFrame endFrame]
+   %     read(frames) - single frames or a range of frames [startFrame endFrame],
+   %                    returns frames as a [WIDTH x HEIGHT x CHANNELS x NFRAMES] matrix
    %     clean()      - delete all temporary files
    %
    %  PROPERTIES:
    %     Width, Height, NumberOfFrames, FrameRate, Channels
-   %     buffered, bufferSize, bufferedFrameTimes, tempName, tempFolder
+   %     tempName, tempFolder, imageFormat
+   %     buffered, bufferSize, bufferedFrameTimes, 
    %
    %  see also VIDEOREADER
    
@@ -107,7 +109,7 @@ classdef VideoReaderFFMPEG < handle
       function frame = read(obj, frameNumber)
          % frame  = read(frameNumber);
          % frames = read([startFrameNumner endFrameNumber]);
-         %
+         % returns frames as a [WIDTH x HEIGHT x CHANNELS x NFRAMES] matrix
          % direct or buffered (experimental, set obj.buffered=true) reading of frames
          
          frameNumber = frameNumber - 1;% zero-based
