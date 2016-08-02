@@ -14,7 +14,7 @@ Matlab wrapper for FFMPEG that implements a VideoReader-like interface.
 
 ## Internals
 - uses `ffprobe` to get meta data
-- uses `ffmpeg` to export video frames as TIF which are loaded using matlab's `imread()`
+- uses `ffmpeg` to export video frames as images which are loaded using matlab's `imread()`
 - tested using `ffmpeg` v2.5 and v2.6
 
    
