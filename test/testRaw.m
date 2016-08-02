@@ -16,7 +16,7 @@ for prop = 1:length(PropertyNames)
 end
 %% 2. load frames using the built-in VIDEOREADER
 framesToRead = round(linspace(10, vr{2}.NumberOfFrames-10,10));
-toHit = {'1559806.5309';'1563957.9531';'1564038.2235';'1561726.0661';'1559567.2733';'1558649.0342';'1560885.5080';'1562654.8600';'1560345.1193';'1562141.9925'}
+toHit = {'1559806.5309';'1563957.9531';'1564038.2235';'1561726.0661';'1559567.2733';'1558649.0342';'1560885.5080';'1562654.8600';'1560345.1193';'1562141.9925'};
 
 for fr = 1:length(framesToRead)
    % read and plot frames
