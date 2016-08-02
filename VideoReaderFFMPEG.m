@@ -2,7 +2,6 @@ classdef VideoReaderFFMPEG < handle
    % For reading videos - needed it since the builting VIDEOREADER wouldn't
    % accept h264 encoded files - this is a simple command line wrapper for FFMPEG
    %
-   % side-note: 2-2.5x faster on an SSD drive than the builtin VIDEOREADER
    %
    % Exposes a simple interface that implements a subset of the builtin
    %  CONSTRUCTOR:
@@ -10,7 +9,9 @@ classdef VideoReaderFFMPEG < handle
    %     PARAMS:
    %        fileName    - ...
    %        tempFolder  - OPTIONAL - location to store temporary files, defaults to './'
-   %        FFMPEGPath  - OPTIONAL - location of FFMPEG/FFPROBE executables defaults to '/usr/local/bin' (UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)
+   %        FFMPEGPath  - OPTIONAL - location of FFMPEG/FFPROBE executables defaults to '/usr/local/bin' (OSX/UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)
+   %        imageFormat - OPTIONAL - format to use as a temporary frame
+   %                                 store, defaults to 'tif'
    %
    %  METHODS:
    %     read(frames) - with single frames or a range of frames [startFrame endFrame]
@@ -29,6 +30,7 @@ classdef VideoReaderFFMPEG < handle
       vFileName
       tempFolder
       FFMPEGPath
+      imageFormat
       % metadata:
       NumberOfFrames
       FrameRate
@@ -58,13 +60,23 @@ classdef VideoReaderFFMPEG < handle
             defaultFFMPEGPath = 'C:\Program Files\ffmpeg\bin';
          end
          addParamValue(p, 'FFMPEGPath', defaultFFMPEGPath, @ischar);% should be addParameter - used the old name for compatibility with 2013a
+         addParamValue(p, 'imageFormat','tif', @ischar);% should be addParameter - used the old name for compatibility with 2013a
          parse(p,vFileName,varargin{:})
          
+         % ensure that video file exists
          if ~exist(p.Results.vFileName,'file')% this should be part of the inputParser
             error('video file %s does not exist.', p.Results.vFileName);
          else
             obj.vFileName = p.Results.vFileName;
          end
+         
+         % ensure that imageformat parameter is a valid image format
+         imformatsTable = imformats();
+         validFormats = [imformatsTable.ext];
+         validatestring(p.Results.imageFormat,validFormats, 'VideoReaderFFMPEG','imageFormat');
+         obj.imageFormat = p.Results.imageFormat;
+         
+         % should check for existence of those, too
          obj.tempFolder = p.Results.tempFolder;
          obj.FFMPEGPath= p.Results.FFMPEGPath;
          
@@ -84,26 +96,16 @@ classdef VideoReaderFFMPEG < handle
          %assert(system('ffmpeg')<=1, 'FFMPEG not found!  Use FFMPEGPath parameter to point to binary');
          %assert(system('ffprobe')<=1, 'FFPROBE not found! Use FFMPEGPath parameter to point to binary');
          
-         % get metadata - TODO put into its own private/public(?) function
-         out = evalc(['!ffprobe -show_streams ' obj.vFileName]);
-         out(strfind(out, '=')) = [];
-         keys = {'nb_frames', 'width', 'height', 'r_frame_rate'};
-         keysField = {'NumberOfFrames', 'Width', 'Height', 'FrameRate'};
-         for idx = 1:length(keys);
-            key = keys{idx};
-            Index = strfind(out, key);
-            obj.(keysField{idx}) = sscanf(out(Index(1) + length(key):end), '%g', 1);
-         end
-         obj.Channels = size(obj.read(1),3);
+         obj.getMetaData()
          
-         %
-         obj.bufferedFrameTimes = [];
+         % parameters for buffered reading
          obj.buffered = false;
+         obj.bufferedFrameTimes = [];
          obj.bufferSize = 10;
       end
       
       function frame = read(obj, frameNumber)
-         % frame = read(frameNumber);
+         % frame  = read(frameNumber);
          % frames = read([startFrameNumner endFrameNumber]);
          %
          % direct or buffered (experimental, set obj.buffered=true) reading of frames
@@ -116,7 +118,6 @@ classdef VideoReaderFFMPEG < handle
             else
                frame = obj.readSingleFrame(frameTime);
             end
-            
             
             if length(size(frame))==2
                frame = reshape(frame, [size(frame),1,1]);
@@ -135,40 +136,58 @@ classdef VideoReaderFFMPEG < handle
       end
       
       function clean(obj)
-         if ~isempty(dir([obj.tempName '.png']))
-            delete([obj.tempName '.png']);
+         % delete temporary images from disk
+         if ~isempty(dir([obj.tempName '.' obj.imageFormat]))
+            delete([obj.tempName '.' obj.imageFormat]);
          end
-         if ~isempty(dir([obj.tempName '*.png']))
-            delete([obj.tempName '*.png']);
+         if ~isempty(dir([obj.tempName '*.' obj.imageFormat]))
+            delete([obj.tempName '*.' obj.imageFormat]);
          end
       end
       
       function delete(obj)
-         % deletes temporary tifs from disk - make this safe so we don't
-         % accidentally delete files
+         % delete temporary images from disk when deleting the object
          obj.clean()
       end
       
    end
    
    methods (Access='private')
+      function getMetaData(obj)
+         % get metadata using FFPROBE
+         out = evalc(['!ffprobe -show_streams ' obj.vFileName]);
+         out(strfind(out, '=')) = [];
+         % map FFPROBE output to their corresponding class variables
+         keys = {'nb_frames', 'width', 'height', 'r_frame_rate'};
+         keysField = {'NumberOfFrames', 'Width', 'Height', 'FrameRate'};
+         for idx = 1:length(keys);
+            key = keys{idx};
+            Index = strfind(out, key);
+            obj.(keysField{idx}) = sscanf(out(Index(1) + length(key):end), '%g', 1);
+         end
+         % number of color channels parsed from frame since it's not exposed through FFPROBE
+         obj.Channels = size(obj.read(1),3); 
+      end
+      
       function frame = readSingleFrame(obj, frameTime)
-         % write RAW frame to file using FFMPEG - frames are accessed based
+         % write frame to file using FFMPEG - frames are accessed based
          % on time starting with 0 (so frame #1 is 0, not 1/fps!!).
          
+         % FFMPEG parameters used:
          % -vframes 1   - number of frames to extract
          % -ss seconds  - start point
          % -v error     - print only error messages
          % -y           - say 'YES' to any prompt
-         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.png']);
-         frame = imread([obj.tempName, '.png']);
+         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.' obj.imageFormat]);
+         frame = imread([obj.tempName '.' obj.imageFormat]);
       end
       
       function frame = readSingleFrameBuffered(obj, frameTime)
-         % write RAW frame to file using FFMPEG - frames are accessed based
+         % write frame to file using FFMPEG - frames are accessed based
          % on time starting with 0 (so frame #1 is 0, not 1/fps!!).
          % uses tif files buffered on disk
-
+         
+         % FFMPEG parameters used:
          % -vframes 1   - number of frames to extract
          % -ss seconds  - start point
          % -v error     - print only error messages
@@ -177,11 +196,11 @@ classdef VideoReaderFFMPEG < handle
          bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          if ~any(bufferHits)
             obj.bufferedFrameTimes = frameTime + (0:obj.bufferSize-1)/obj.FrameRate;
-            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.png']);
+            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.' obj.imageFormat]);
             bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          end
-         tifFileName = sprintf([obj.tempName, '%05d.png'], find(bufferHits,1,'first'));
-         frame = imread(tifFileName);
+         imageFileName = sprintf([obj.tempName '%05d.' obj.imageFormat], find(bufferHits,1,'first'));
+         frame = imread(imageFileName);
       end
    end
 end
