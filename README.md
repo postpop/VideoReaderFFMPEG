@@ -1,5 +1,5 @@
 # VideoReaderFFMPEG
-Matlab wrapper for FFMPEG that implements a VideoReader-like interface. Can be 2-2.5x faster than builtin VideoReader.
+Matlab wrapper for FFMPEG that implements a VideoReader-like interface.
 
 ## Documentation
 - Constructor: `vr = VideoReaderFFMPEG('test.mp4');`
