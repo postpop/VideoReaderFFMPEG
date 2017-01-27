@@ -84,16 +84,18 @@ classdef VideoReaderFFMPEG < handle
          
          obj.tempName = tempname(obj.tempFolder);
          
-         % add location of FFMPEG/FFPROBE to path
-         path = getenv('PATH');
-         if isunix
-            path = [path ':' obj.FFMPEGPath];% this is where FFPROBE is installed to on my system
+         %% add location of FFMPEG/FFPROBE to path
+         syspath = getenv('PATH');
+         if isempty(strfind(syspath, obj.FFMPEGPath))
+            if isunix
+               syspath = [syspath ':' obj.FFMPEGPath];% this is where FFPROBE is installed to on my system
+            end
+            if ispc % WINDOWS
+               syspath = [syspath ';' obj.FFMPEGPath ';'];%
+            end
          end
-         if ispc % WINDOWS
-            path = [path ';' obj.FFMPEGPath ';'];%
-         end
-         setenv('PATH', path);
-         % check that FFMPEG and FFPROBE are available in path
+         setenv('PATH', syspath);
+         %% check that FFMPEG and FFPROBE are available in path
          % TO FIX: system('..') should return 0 if it exists but returns 1, and the statement prints the result
          %assert(system('ffmpeg')<=1, 'FFMPEG not found!  Use FFMPEGPath parameter to point to binary');
          %assert(system('ffprobe')<=1, 'FFPROBE not found! Use FFMPEGPath parameter to point to binary');
