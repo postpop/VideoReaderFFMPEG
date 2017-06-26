@@ -4,7 +4,7 @@ classdef VideoReaderFFMPEG < handle
    % Exposes a simple interface that implements a subset of the builtin
    %
    %  CONSTRUCTOR:
-   %     vr = VideoReaderFFMPEG(fileName, 'tempFolder', tempFolder, 'FFMPEGPath', FFMPEGPath, 'imageFormat', imageFormat);
+   %     vr = VideoReaderFFMPEG(fileName, 'tempFolder', tempFolder, 'FFMPEGPath', FFMPEGPath, 'imageFormat', imageFormat, 'verbose', verbose);
    %
    %     PARAMS:
    %        fileName    - path to video file
@@ -12,6 +12,7 @@ classdef VideoReaderFFMPEG < handle
    %        FFMPEGPath  - OPTIONAL - location of FFMPEG/FFPROBE executables,
    %                                 defaults to '/usr/local/bin' (OSX/UNIX) or 'C:\Program Files\ffmpeg\bin' (WIN)
    %        imageFormat - OPTIONAL - format used as a temporary frame store, defaults to 'tif'
+   %        verbose     - OPTIONAL - display ffmpeg output messages, defaults to false (not output)
    %
    %  METHODS:
    %     read(frames) - single frames or a range of frames [startFrame endFrame],
@@ -26,6 +27,11 @@ classdef VideoReaderFFMPEG < handle
    %  see also VIDEOREADER
    
    % JC - created 2015/04/03
+   
+   % TODO:
+   % implement using pipes:
+   %  https://www.mathworks.com/matlabcentral/fileexchange/13851-popen-read-and-write
+   %  http://ffmpy.readthedocs.io/en/latest/examples.html#using-pipe-protocol
       
    properties
       % input parameters:
@@ -33,6 +39,7 @@ classdef VideoReaderFFMPEG < handle
       tempFolder
       FFMPEGPath
       imageFormat
+      verbose
       % metadata:
       NumberOfFrames
       FrameRate
@@ -63,6 +70,7 @@ classdef VideoReaderFFMPEG < handle
          end
          addParamValue(p, 'FFMPEGPath', defaultFFMPEGPath, @ischar);% should be addParameter - used the old name for compatibility with 2013a
          addParamValue(p, 'imageFormat','tif', @ischar);% should be addParameter - used the old name for compatibility with 2013a
+         addParamValue(p, 'verbose',false);% should be addParameter - used the old name for compatibility with 2013a
          parse(p,vFileName,varargin{:})
          
          % ensure that video file exists
@@ -84,6 +92,7 @@ classdef VideoReaderFFMPEG < handle
          
          obj.tempName = tempname(obj.tempFolder);
          
+         obj.verbose = p.Results.verbose;
          %% add location of FFMPEG/FFPROBE to path
          syspath = getenv('PATH');
          if isempty(strfind(syspath, obj.FFMPEGPath))
@@ -164,7 +173,7 @@ classdef VideoReaderFFMPEG < handle
          % map FFPROBE output to their corresponding class variables
          keys = {'nb_frames', 'width', 'height', 'r_frame_rate'};
          keysField = {'NumberOfFrames', 'Width', 'Height', 'FrameRate'};
-         for idx = 1:length(keys);
+         for idx = 1:length(keys)
             key = keys{idx};
             Index = strfind(out, key);
             obj.(keysField{idx}) = sscanf(out(Index(1) + length(key):end), '%g', 1);
@@ -182,7 +191,11 @@ classdef VideoReaderFFMPEG < handle
          % -ss seconds  - start point
          % -v error     - print only error messages
          % -y           - say 'YES' to any prompt
-         evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.' obj.imageFormat]);
+         outMessage = evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -vframes 1 ' obj.tempName '.' obj.imageFormat]);
+%          outMessage = evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes 1 ' obj.tempName '.' obj.imageFormat]);
+         if obj.verbose
+            disp(outMessage)
+         end
          frame = imread([obj.tempName '.' obj.imageFormat]);
       end
       
@@ -200,7 +213,11 @@ classdef VideoReaderFFMPEG < handle
          bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          if ~any(bufferHits)
             obj.bufferedFrameTimes = frameTime + (0:obj.bufferSize-1)/obj.FrameRate;
-            evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.' obj.imageFormat]);
+%             outMessage = evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -v error -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.' obj.imageFormat]);
+            outMessage = evalc(['!ffmpeg -y -ss ' num2str(frameTime, '%1.8f') ' -i ' obj.vFileName ' -vframes ' int2str(obj.bufferSize) ' ' obj.tempName '%05d.' obj.imageFormat]);
+            if obj.verbose
+               disp(outMessage)
+            end
             bufferHits = ismember(obj.bufferedFrameTimes, frameTime);
          end
          imageFileName = sprintf([obj.tempName '%05d.' obj.imageFormat], find(bufferHits,1,'first'));
